@@ -5,6 +5,12 @@ Part of **Konochi**, a personal Omarchy plugin series by Alec Xu.
 Standalone plugin derived from `omarchy.workspaces`, configured in
 `~/.config/omarchy/shell.json`.
 
+## Preview
+
+![Konospaces bar widget showing numbered workspaces and application icons for their windows](preview.png)
+
+## Features
+
 - Each workspace number is followed by one application icon per window (no deduplication).
 - Workspaces containing windows and the selected workspace are shown, including special workspaces. Empty unselected workspaces are hidden.
 - Normal workspaces appear first, followed by special workspaces using their names.
