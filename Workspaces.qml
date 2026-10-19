@@ -9,7 +9,7 @@ import qs.Ui
 
 BarWidget {
   id: root
-  moduleName: "xvvhang.iconspaces"
+  moduleName: "konochi.konospaces"
 
   readonly property real iconSize: Style.space(16)
   property var specialWorkspaces: ({})
