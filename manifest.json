@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "alec.workspaces",
+  "name": "Workspaces with Window Icons",
+  "version": "1.0.0",
+  "author": "alec",
+  "license": "MIT",
+  "description": "Workspace numbers followed by an application icon for every window",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Workspaces.qml"
+  },
+  "barWidget": {
+    "displayName": "Workspaces with Window Icons",
+    "description": "Workspace numbers and live window icons",
+    "category": "Compositor",
+    "allowMultiple": false
+  }
+}
