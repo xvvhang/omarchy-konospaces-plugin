@@ -27,7 +27,7 @@ Hyprland with the `hl.dsp` Lua dispatch interface. Application icons come from
 installed desktop entries. No network access, privileged setup, or installer.
 
 ```sh
-omarchy plugin add https://github.com/xvvhang/omarchy-workspaces --enable
+omarchy plugin add https://github.com/xvvhang/konospaces --enable
 omarchy plugin disable omarchy.workspaces
 ```
 
