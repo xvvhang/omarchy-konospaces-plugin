@@ -33,9 +33,9 @@ The published manifest has no development-only clone metadata. Restore the stock
 widget explicitly when uninstalling:
 
 ```sh
-omarchy plugin disable alec.workspaces
+omarchy plugin disable xvvhang.workspaces
 omarchy plugin enable omarchy.workspaces
-omarchy plugin remove alec.workspaces
+omarchy plugin remove xvvhang.workspaces
 ```
 
 No persistent data is stored outside the shell configuration. Back up unpushed
