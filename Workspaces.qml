@@ -9,7 +9,7 @@ import qs.Ui
 
 BarWidget {
   id: root
-  moduleName: "alec.workspaces"
+  moduleName: "xvvhang.workspaces"
 
   readonly property real iconSize: Style.space(16)
   property var specialWorkspaces: ({})
