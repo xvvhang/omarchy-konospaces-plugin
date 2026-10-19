@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "id": "xvvhang.iconspaces",
-  "name": "Iconspaces",
+  "id": "konochi.konospaces",
+  "name": "Konospaces",
   "version": "1.0.0",
   "author": "alec",
   "license": "MIT",
@@ -13,7 +13,7 @@
     "barWidget": "Workspaces.qml"
   },
   "barWidget": {
-    "displayName": "Iconspaces",
+    "displayName": "Konospaces",
     "description": "Workspace numbers and live window icons",
     "category": "Compositor",
     "allowMultiple": false

@@ -1,4 +1,6 @@
-# Iconspaces
+# Konospaces
+
+Part of **Konochi**, a personal Omarchy plugin series by Alec Xu.
 
 Standalone plugin derived from `omarchy.workspaces`, configured in
 `~/.config/omarchy/shell.json`.
@@ -33,9 +35,9 @@ The published manifest has no development-only clone metadata. Restore the stock
 widget explicitly when uninstalling:
 
 ```sh
-omarchy plugin disable xvvhang.iconspaces
+omarchy plugin disable konochi.konospaces
 omarchy plugin enable omarchy.workspaces
-omarchy plugin remove xvvhang.iconspaces
+omarchy plugin remove konochi.konospaces
 ```
 
 No persistent data is stored outside the shell configuration. Back up unpushed
