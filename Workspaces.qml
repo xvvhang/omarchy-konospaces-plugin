@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
@@ -12,20 +14,65 @@ BarWidget {
   moduleName: "konochi.konospaces"
 
   readonly property real iconSize: Style.space(16)
+  readonly property var applicationEntries: DesktopEntries.applications.values
+  readonly property bool textMode: setting("displayMode", "icons") === "text"
+  readonly property real windowNameMaxWidth: Style.space(Math.max(40, Number(setting("windowNameMaxWidth", 100)) || 100))
   property var specialWorkspaces: ({})
+  property var processApplications: ({})
   readonly property int focusedWorkspaceId: {
     var monitor = Hyprland.focusedMonitor
     var special = monitor ? specialWorkspaces[monitor.name] : 0
     return special || (Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 0)
   }
 
-  Component.onCompleted: monitorQuery.running = true
+  Component.onCompleted: {
+    monitorQuery.running = true
+    processRefresh.restart()
+  }
+  onApplicationEntriesChanged: processRefresh.restart()
 
   Connections {
     target: Hyprland
     function onRawEvent(event) {
+      if (event.name === "openwindow" || event.name === "closewindow") processRefresh.restart()
       if (event.name.indexOf("activespecial") === 0 || event.name.indexOf("focusedmon") === 0 || event.name.indexOf("monitor") === 0)
         monitorRefresh.restart()
+    }
+  }
+
+  Timer {
+    id: processRefresh
+    interval: 150
+    onTriggered: {
+      if (processQuery.running) {
+        restart()
+        return
+      }
+      var entries = root.applicationEntries.map(function(entry) {
+        return { id: entry.id, executable: entry.command[0] || "", workingDirectory: entry.workingDirectory || "" }
+      })
+      var pids = []
+      var workspaces = Hyprland.workspaces.values
+      for (var i = 0; i < workspaces.length; i++) {
+        var windows = workspaces[i].toplevels.values
+        for (var j = 0; j < windows.length; j++) {
+          var ipc = windows[j].lastIpcObject || {}
+          if (ipc.pid > 0 && pids.indexOf(ipc.pid) === -1) pids.push(ipc.pid)
+        }
+      }
+      processQuery.command = ["python3", Qt.resolvedUrl("process-apps.py").toString().replace(/^file:\/\//, ""), JSON.stringify({ entries: entries, pids: pids })]
+      processQuery.running = true
+    }
+  }
+
+  Process {
+    id: processQuery
+    stdout: StdioCollector {
+      onStreamFinished: {
+        try {
+          root.processApplications = JSON.parse(text)
+        } catch (error) { console.warn("workspaces: could not resolve process applications", error) }
+      }
     }
   }
 
@@ -57,42 +104,67 @@ BarWidget {
   function webAppEntry(candidates, entries) {
     for (var i = 0; i < entries.length; i++) {
       var command = entries[i].execString || ""
-      if (command.indexOf("omarchy-launch-webapp") === -1 && command.indexOf("--app=") === -1) continue
       var match = command.match(/https?:\/\/[^\s"']+/)
       if (!match) continue
       var address = match[0].replace(/^https?:\/\//, "")
-      // Chromium uses host + '_' + path, then replaces '/' with '_'.
+      // Match URL-derived window IDs without depending on a browser or launcher name.
       if (address.indexOf("/") === -1) address += "/"
       var key = address.replace("/", "_/").replace(/\//g, "_")
       for (var j = 0; j < candidates.length; j++) {
         var candidate = String(candidates[j] || "")
-        if (candidate.indexOf("chrome-" + key + "-") === 0 || candidate.indexOf("chromium-" + key + "-") === 0)
+        if (candidate === key || candidate.indexOf("-" + key + "-") !== -1)
           return entries[i]
       }
     }
     return null
   }
 
+  function toggleDisplayMode() {
+    var entry = { id: moduleName }
+    for (var key in settings) if (key !== "id") entry[key] = settings[key]
+    entry.displayMode = textMode ? "icons" : "text"
+    settings = entry
+    if (bar && bar.shell) bar.shell.updateEntryInline(moduleName, entry)
+  }
+
+  function windowEntry(toplevel) {
+    var ipc = toplevel.lastIpcObject || {}
+    var appId = toplevel.wayland ? toplevel.wayland.appId : ""
+    var entry = webAppEntry([appId, ipc.class, ipc.initialClass], root.applicationEntries)
+    if (entry) return entry
+    var candidates = [appId, ipc.class, ipc.initialClass]
+    for (var i = 0; i < candidates.length; i++) {
+      if (!candidates[i]) continue
+      entry = DesktopEntries.heuristicLookup(candidates[i])
+      if (entry) return entry
+    }
+    var processEntryId = root.processApplications[ipc.pid]
+    if (processEntryId) {
+      for (var k = 0; k < root.applicationEntries.length; k++) {
+        if (root.applicationEntries[k].id === processEntryId) return root.applicationEntries[k]
+      }
+    }
+    if (!appId && !ipc.class && !ipc.initialClass) {
+      for (var j = 0; j < root.applicationEntries.length; j++) {
+        entry = root.applicationEntries[j]
+        if (entry.name === toplevel.title || entry.name === ipc.initialTitle) return entry
+      }
+    }
+    return null
+  }
+
+  function windowName(toplevel) {
+    var entry = windowEntry(toplevel)
+    if (entry && entry.name) return entry.name
+    var ipc = toplevel.lastIpcObject || {}
+    var appId = toplevel.wayland ? toplevel.wayland.appId : ""
+    return ipc.initialClass || ipc.class || appId || "Window"
+  }
+
   function windowIcon(toplevel) {
     var ipc = toplevel.lastIpcObject || {}
     var appId = toplevel.wayland ? toplevel.wayland.appId : ""
-    var candidates = [appId, ipc.class, ipc.initialClass]
-    if (!appId && !ipc.class && (toplevel.title === "飞书" || ipc.initialTitle === "飞书"))
-      candidates.push("feishu")
-    var entries = DesktopEntries.applications.values
-    var entry = webAppEntry(candidates, entries)
-    for (var i = 0; i < candidates.length && !entry; i++) {
-      if (candidates[i]) entry = DesktopEntries.heuristicLookup(candidates[i])
-    }
-    // Some clients (e.g. Feishu) do not advertise an app ID or class.
-    if (!entry && !appId && !ipc.class) {
-      for (var j = 0; j < entries.length; j++) {
-        if (entries[j].name === toplevel.title || entries[j].name === ipc.initialTitle) {
-          entry = entries[j]
-          break
-        }
-      }
-    }
+    var entry = windowEntry(toplevel)
     var icon = entry ? entry.icon : (appId || ipc.class || "")
     if (icon.indexOf("/") === 0) return Util.fileUrl(icon)
     var source = icon ? Quickshell.iconPath(icon, true) : ""
@@ -163,13 +235,16 @@ BarWidget {
         bar: root.bar
         text: workspace && workspace.name === "special:scratchpad" ? "S" : (workspace && workspace.name.indexOf("special:") === 0 ? workspace.name.slice(8) : (workspace ? workspace.name : String(modelData)))
         labelVisible: false
-        tooltipText: "Workspace " + text + (occupied ? "\n" + windows.map(function(window) { return window.title }).join("\n") : "")
+        tooltipText: "Workspace " + workspaceButton.text + (workspaceButton.occupied ? "\n" + workspaceButton.windows.map(function(window) { return window.title }).join("\n") : "")
         opacity: 1
         horizontalMargin: 6
         verticalPadding: 6
-        fixedWidth: root.vertical ? root.barSize : Math.max(Style.space(20), content.implicitWidth + scaledHorizontalMargin * 2)
-        fixedHeight: root.vertical ? Math.max(root.barSize, content.implicitHeight + scaledVerticalPadding * 2) : root.barSize
-        onPressed: function() { root.focusWorkspace(modelData) }
+        fixedWidth: root.vertical ? root.barSize : Math.max(Style.space(20), content.implicitWidth + workspaceButton.scaledHorizontalMargin * 2)
+        fixedHeight: root.vertical ? Math.max(root.barSize, content.implicitHeight + workspaceButton.scaledVerticalPadding * 2) : root.barSize
+        onPressed: function(button) {
+          if (button === Qt.RightButton) root.toggleDisplayMode()
+          else if (button === Qt.LeftButton) root.focusWorkspace(modelData)
+        }
 
         GridLayout {
           id: content
@@ -189,37 +264,59 @@ BarWidget {
             Layout.alignment: Qt.AlignCenter
           }
 
-          Item {
+          GridLayout {
             visible: workspaceButton.occupied
-            readonly property real spacing: Style.space(3)
-            implicitWidth: root.vertical ? root.iconSize : workspaceButton.windows.length * (root.iconSize + spacing) - spacing
-            implicitHeight: root.vertical ? workspaceButton.windows.length * (root.iconSize + spacing) - spacing : root.iconSize
-            Layout.preferredWidth: implicitWidth
-            Layout.preferredHeight: implicitHeight
+            columns: root.vertical ? 1 : Math.max(1, workspaceButton.windows.length)
+            columnSpacing: Style.space(root.textMode ? 8 : 3)
+            rowSpacing: Style.space(3)
             Layout.alignment: Qt.AlignCenter
 
             Repeater {
               model: workspaceButton.windows
-              Image {
+              Item {
+                id: windowItem
                 required property var modelData
-                required property int index
-                x: root.vertical ? 0 : index * (root.iconSize + Style.space(3))
-                y: root.vertical ? index * (root.iconSize + Style.space(3)) : 0
-                width: root.iconSize
-                height: root.iconSize
-                source: root.windowIcon(modelData)
-                sourceSize.width: width
-                sourceSize.height: height
-                fillMode: Image.PreserveAspectFit
+                readonly property real maxTextWidth: root.vertical
+                  ? Math.max(1, root.barSize - workspaceButton.scaledHorizontalMargin * 2)
+                  : root.windowNameMaxWidth
+                implicitWidth: root.textMode ? Math.min(windowLabel.implicitWidth, maxTextWidth) : root.iconSize
+                implicitHeight: root.textMode ? windowLabel.implicitHeight : root.iconSize
+                Layout.preferredWidth: implicitWidth
+                Layout.preferredHeight: implicitHeight
+                Layout.alignment: Qt.AlignCenter
                 opacity: modelData.activated ? 1 : 0.5
-                layer.enabled: !modelData.activated
-                layer.effect: MultiEffect {
-                  saturation: -1
-                  colorization: 1
-                  colorizationColor: workspaceButton.foreground
-                  contrast: -0.3
-                  brightness: 0.1
-                  autoPaddingEnabled: false
+
+                Text {
+                  id: windowLabel
+                  anchors.fill: parent
+                  visible: root.textMode
+                  text: root.windowName(windowItem.modelData)
+                  textFormat: Text.PlainText
+                  elide: Text.ElideRight
+                  maximumLineCount: 1
+                  verticalAlignment: Text.AlignVCenter
+                  color: workspaceButton.foreground
+                  font.family: workspaceButton.fontFamily
+                  font.pixelSize: workspaceButton.fontSize
+                  renderType: Text.NativeRendering
+                }
+
+                Image {
+                  anchors.fill: parent
+                  visible: !root.textMode
+                  source: root.textMode ? "" : root.windowIcon(windowItem.modelData)
+                  sourceSize.width: root.iconSize
+                  sourceSize.height: root.iconSize
+                  fillMode: Image.PreserveAspectFit
+                  layer.enabled: !root.textMode && !windowItem.modelData.activated
+                  layer.effect: MultiEffect {
+                    saturation: -1
+                    colorization: 1
+                    colorizationColor: workspaceButton.foreground
+                    contrast: -0.3
+                    brightness: 0.1
+                    autoPaddingEnabled: false
+                  }
                 }
               }
             }
