@@ -1,7 +1,7 @@
 import importlib.util
 from pathlib import Path
-import unittest
 import tempfile
+import unittest
 from unittest.mock import patch
 
 
@@ -11,15 +11,15 @@ spec.loader.exec_module(resolver)
 
 
 class ProcessAppTests(unittest.TestCase):
-    def test_literal_wrapper_exec_is_resolved_without_execution(self):
+    def test_scripts_are_not_interpreted(self):
         with tempfile.TemporaryDirectory() as directory:
-            executable = Path(directory) / "application"
-            executable.write_bytes(b"\x7fELF")
             wrapper = Path(directory) / "launcher"
-            wrapper.write_text(f'#!/bin/sh\nexec "{executable}" "$@"\n')
-            self.assertEqual(resolver.executable_path(str(wrapper)), str(executable))
-            wrapper.write_text('#!/bin/sh\nexec "$DYNAMIC_TARGET" "$@"\n')
+            wrapper.write_text('#!/bin/sh\nexec /opt/another-program "$@"\n')
             self.assertEqual(resolver.executable_path(str(wrapper)), str(wrapper))
+
+    def test_relative_path_requires_absolute_working_directory(self):
+        self.assertIsNone(resolver.executable_path("./example"))
+        self.assertEqual(resolver.executable_path("./example", "/opt/app"), "/opt/app/example")
 
     @patch.object(resolver.os, "readlink", return_value="/opt/example/app")
     @patch.object(resolver.os.path, "realpath", return_value="/opt/example/app")
@@ -29,9 +29,9 @@ class ProcessAppTests(unittest.TestCase):
         self.assertEqual(resolver.resolve_process_apps(entries, [123]), {"123": "example"})
         which.assert_called_once_with("example")
 
-    @patch.object(resolver.os, "readlink", return_value="/usr/bin/shared")
-    def test_ambiguous_executable_is_not_guessed(self, readlink):
-        entries = [{"id": name, "executable": "/usr/bin/shared"} for name in ["one", "two"]]
+    @patch.object(resolver.os, "readlink", return_value="/usr/bin/foot")
+    def test_shared_terminal_executable_is_not_guessed(self, readlink):
+        entries = [{"id": name, "executable": "/usr/bin/foot"} for name in ["foot", "foot-server"]]
         self.assertEqual(resolver.resolve_process_apps(entries, [123]), {})
 
     @patch.object(resolver.os, "readlink", side_effect=PermissionError)

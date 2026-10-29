@@ -14,11 +14,9 @@ BarWidget {
   moduleName: "konochi.konospaces"
 
   readonly property real iconSize: Style.space(16)
-  readonly property var applicationEntries: DesktopEntries.applications.values
   readonly property bool textMode: setting("displayMode", "icons") === "text"
   readonly property real windowNameMaxWidth: Style.space(Math.max(40, Number(setting("windowNameMaxWidth", 100)) || 100))
   property var specialWorkspaces: ({})
-  property var processApplications: ({})
   readonly property int focusedWorkspaceId: {
     var monitor = Hyprland.focusedMonitor
     var special = monitor ? specialWorkspaces[monitor.name] : 0
@@ -27,52 +25,30 @@ BarWidget {
 
   Component.onCompleted: {
     monitorQuery.running = true
-    processRefresh.restart()
   }
-  onApplicationEntriesChanged: processRefresh.restart()
+
+  ApplicationResolver { id: applications }
+
+  IpcHandler {
+    target: "konochi.konospaces"
+    function status(): string { return JSON.stringify(root.diagnostics()) }
+  }
+
+  function diagnostics() {
+    var state = applications.diagnostics()
+    state.labels = []
+    for (var i = 0; i < workspaceRepeater.count; i++) {
+      var workspace = workspaceRepeater.itemAt(i)
+      if (workspace) state.labels = state.labels.concat(workspace.windowLabels())
+    }
+    return state
+  }
 
   Connections {
     target: Hyprland
     function onRawEvent(event) {
-      if (event.name === "openwindow" || event.name === "closewindow") processRefresh.restart()
       if (event.name.indexOf("activespecial") === 0 || event.name.indexOf("focusedmon") === 0 || event.name.indexOf("monitor") === 0)
         monitorRefresh.restart()
-    }
-  }
-
-  Timer {
-    id: processRefresh
-    interval: 150
-    onTriggered: {
-      if (processQuery.running) {
-        restart()
-        return
-      }
-      var entries = root.applicationEntries.map(function(entry) {
-        return { id: entry.id, executable: entry.command[0] || "", workingDirectory: entry.workingDirectory || "" }
-      })
-      var pids = []
-      var workspaces = Hyprland.workspaces.values
-      for (var i = 0; i < workspaces.length; i++) {
-        var windows = workspaces[i].toplevels.values
-        for (var j = 0; j < windows.length; j++) {
-          var ipc = windows[j].lastIpcObject || {}
-          if (ipc.pid > 0 && pids.indexOf(ipc.pid) === -1) pids.push(ipc.pid)
-        }
-      }
-      processQuery.command = ["python3", Qt.resolvedUrl("process-apps.py").toString().replace(/^file:\/\//, ""), JSON.stringify({ entries: entries, pids: pids })]
-      processQuery.running = true
-    }
-  }
-
-  Process {
-    id: processQuery
-    stdout: StdioCollector {
-      onStreamFinished: {
-        try {
-          root.processApplications = JSON.parse(text)
-        } catch (error) { console.warn("workspaces: could not resolve process applications", error) }
-      }
     }
   }
 
@@ -101,24 +77,6 @@ BarWidget {
     }
   }
 
-  function webAppEntry(candidates, entries) {
-    for (var i = 0; i < entries.length; i++) {
-      var command = entries[i].execString || ""
-      var match = command.match(/https?:\/\/[^\s"']+/)
-      if (!match) continue
-      var address = match[0].replace(/^https?:\/\//, "")
-      // Match URL-derived window IDs without depending on a browser or launcher name.
-      if (address.indexOf("/") === -1) address += "/"
-      var key = address.replace("/", "_/").replace(/\//g, "_")
-      for (var j = 0; j < candidates.length; j++) {
-        var candidate = String(candidates[j] || "")
-        if (candidate === key || candidate.indexOf("-" + key + "-") !== -1)
-          return entries[i]
-      }
-    }
-    return null
-  }
-
   function toggleDisplayMode() {
     var entry = { id: moduleName }
     for (var key in settings) if (key !== "id") entry[key] = settings[key]
@@ -127,45 +85,8 @@ BarWidget {
     if (bar && bar.shell) bar.shell.updateEntryInline(moduleName, entry)
   }
 
-  function windowEntry(toplevel) {
-    var ipc = toplevel.lastIpcObject || {}
-    var appId = toplevel.wayland ? toplevel.wayland.appId : ""
-    var entry = webAppEntry([appId, ipc.class, ipc.initialClass], root.applicationEntries)
-    if (entry) return entry
-    var candidates = [appId, ipc.class, ipc.initialClass]
-    for (var i = 0; i < candidates.length; i++) {
-      if (!candidates[i]) continue
-      entry = DesktopEntries.heuristicLookup(candidates[i])
-      if (entry) return entry
-    }
-    var processEntryId = root.processApplications[ipc.pid]
-    if (processEntryId) {
-      for (var k = 0; k < root.applicationEntries.length; k++) {
-        if (root.applicationEntries[k].id === processEntryId) return root.applicationEntries[k]
-      }
-    }
-    if (!appId && !ipc.class && !ipc.initialClass) {
-      for (var j = 0; j < root.applicationEntries.length; j++) {
-        entry = root.applicationEntries[j]
-        if (entry.name === toplevel.title || entry.name === ipc.initialTitle) return entry
-      }
-    }
-    return null
-  }
-
-  function windowName(toplevel) {
-    var entry = windowEntry(toplevel)
-    if (entry && entry.name) return entry.name
-    var ipc = toplevel.lastIpcObject || {}
-    var appId = toplevel.wayland ? toplevel.wayland.appId : ""
-    return ipc.initialClass || ipc.class || appId || "Window"
-  }
-
-  function windowIcon(toplevel) {
-    var ipc = toplevel.lastIpcObject || {}
-    var appId = toplevel.wayland ? toplevel.wayland.appId : ""
-    var entry = windowEntry(toplevel)
-    var icon = entry ? entry.icon : (appId || ipc.class || "")
+  function applicationIcon(application) {
+    var icon = application.icon
     if (icon.indexOf("/") === 0) return Util.fileUrl(icon)
     var source = icon ? Quickshell.iconPath(icon, true) : ""
     return source || Quickshell.iconPath("application-x-executable")
@@ -221,6 +142,7 @@ BarWidget {
     rowSpacing: root.vertical ? Style.space(2) : 0
 
     Repeater {
+      id: workspaceRepeater
       model: root.workspaceIds()
 
       WidgetButton {
@@ -231,6 +153,15 @@ BarWidget {
         readonly property var windows: workspace ? workspace.toplevels.values : []
         readonly property bool occupied: windows.length > 0
         readonly property bool focused: root.focusedWorkspaceId === modelData
+
+        function windowLabels() {
+          var labels = []
+          for (var i = 0; i < windowRepeater.count; i++) {
+            var item = windowRepeater.itemAt(i)
+            if (item) labels.push({address: item.modelData.address, text: item.displayedName, source: item.application.source})
+          }
+          return labels
+        }
 
         bar: root.bar
         text: workspace && workspace.name === "special:scratchpad" ? "S" : (workspace && workspace.name.indexOf("special:") === 0 ? workspace.name.slice(8) : (workspace ? workspace.name : String(modelData)))
@@ -272,10 +203,13 @@ BarWidget {
             Layout.alignment: Qt.AlignCenter
 
             Repeater {
+              id: windowRepeater
               model: workspaceButton.windows
               Item {
                 id: windowItem
                 required property var modelData
+                readonly property var application: applications.resolveWindow(modelData)
+                readonly property string displayedName: windowLabel.text
                 readonly property real maxTextWidth: root.vertical
                   ? Math.max(1, root.barSize - workspaceButton.scaledHorizontalMargin * 2)
                   : root.windowNameMaxWidth
@@ -290,7 +224,7 @@ BarWidget {
                   id: windowLabel
                   anchors.fill: parent
                   visible: root.textMode
-                  text: root.windowName(windowItem.modelData)
+                  text: windowItem.application.name
                   textFormat: Text.PlainText
                   elide: Text.ElideRight
                   maximumLineCount: 1
@@ -304,7 +238,7 @@ BarWidget {
                 Image {
                   anchors.fill: parent
                   visible: !root.textMode
-                  source: root.textMode ? "" : root.windowIcon(windowItem.modelData)
+                  source: root.textMode ? "" : root.applicationIcon(windowItem.application)
                   sourceSize.width: root.iconSize
                   sourceSize.height: root.iconSize
                   fillMode: Image.PreserveAspectFit
