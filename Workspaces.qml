@@ -235,6 +235,7 @@ BarWidget {
                   color: workspaceButton.foreground
                   font.family: workspaceButton.fontFamily
                   font.pixelSize: workspaceButton.fontSize
+                  font.bold: true
                   renderType: Text.NativeRendering
                 }
 
