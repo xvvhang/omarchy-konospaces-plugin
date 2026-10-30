@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Effects
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
@@ -14,7 +13,9 @@ BarWidget {
   moduleName: "konochi.konospaces"
 
   readonly property real iconSize: Style.space(16)
-  readonly property bool textMode: setting("displayMode", "icons") === "text"
+  readonly property string displayMode: setting("displayMode", "icons")
+  readonly property bool textMode: displayMode === "text"
+  readonly property bool originalIconMode: displayMode === "original"
   readonly property real windowNameMaxWidth: Style.space(Math.max(40, Number(setting("windowNameMaxWidth", 100)) || 100))
   property var specialWorkspaces: ({})
   readonly property int focusedWorkspaceId: {
@@ -36,6 +37,7 @@ BarWidget {
 
   function diagnostics() {
     var state = applications.diagnostics()
+    state.displayMode = displayMode
     state.labels = []
     for (var i = 0; i < workspaceRepeater.count; i++) {
       var workspace = workspaceRepeater.itemAt(i)
@@ -80,7 +82,8 @@ BarWidget {
   function toggleDisplayMode() {
     var entry = { id: moduleName }
     for (var key in settings) if (key !== "id") entry[key] = settings[key]
-    entry.displayMode = textMode ? "icons" : "text"
+    var modes = ["icons", "text", "original"]
+    entry.displayMode = modes[(modes.indexOf(displayMode) + 1) % modes.length]
     settings = entry
     if (bar && bar.shell) bar.shell.updateEntryInline(moduleName, entry)
   }
@@ -218,7 +221,7 @@ BarWidget {
                 Layout.preferredWidth: implicitWidth
                 Layout.preferredHeight: implicitHeight
                 Layout.alignment: Qt.AlignCenter
-                opacity: modelData.activated ? 1 : 0.5
+                opacity: (root.textMode || root.originalIconMode) && !modelData.activated ? 0.5 : 1
 
                 Text {
                   id: windowLabel
@@ -236,21 +239,24 @@ BarWidget {
                 }
 
                 Image {
+                  id: applicationIconImage
                   anchors.fill: parent
-                  visible: !root.textMode
+                  visible: root.originalIconMode
                   source: root.textMode ? "" : root.applicationIcon(windowItem.application)
                   sourceSize.width: root.iconSize
                   sourceSize.height: root.iconSize
                   fillMode: Image.PreserveAspectFit
-                  layer.enabled: !root.textMode && !windowItem.modelData.activated
-                  layer.effect: MultiEffect {
-                    saturation: -1
-                    colorization: 1
-                    colorizationColor: workspaceButton.foreground
-                    contrast: -0.3
-                    brightness: 0.1
-                    autoPaddingEnabled: false
-                  }
+                  layer.enabled: !root.textMode && !root.originalIconMode
+                }
+
+                ShaderEffect {
+                  anchors.fill: applicationIconImage
+                  visible: !root.textMode && !root.originalIconMode
+                  property var source: applicationIconImage
+                  property color foreground: workspaceButton.foreground
+                  property real minimumOpacity: windowItem.modelData.activated ? 0.55 : 0.2
+                  property real maximumOpacity: windowItem.modelData.activated ? 1.0 : 0.65
+                  fragmentShader: Qt.resolvedUrl("shaders/monochrome.frag.qsb")
                 }
               }
             }

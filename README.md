@@ -18,7 +18,11 @@ omarchy plugin disable omarchy.workspaces
 ## Usage
 
 - Left-click a workspace to switch; special workspaces toggle.
-- Right-click to switch between icons (default) and application names.
+- Right-click to cycle through monochrome icons (default), application names,
+  and original full-color application icons.
+- Monochrome icons use the bar text color, with detail represented by opacity:
+  55–100% for active windows and 20–65% for inactive windows. Original icons
+  keep their colors, with 100% opacity when active and 50% when inactive.
 - Occupied and selected workspaces are shown; inactive windows are dimmed.
 - Hover to see window titles. Horizontal and vertical bars are supported.
 - Omarchy launcher identities resolve to installed applications:
@@ -29,6 +33,8 @@ Optional settings on the widget entry in `~/.config/omarchy/shell.json`:
 ```json
 {"id": "konochi.konospaces", "displayMode": "text", "windowNameMaxWidth": 100}
 ```
+
+`displayMode` accepts `icons` (monochrome), `text`, or `original` (full color).
 
 Names and icons share desktop-entry matching, with explicit Omarchy/web-app
 adapters and a unique PID/executable fallback. Titles and launcher scripts are

@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 — 2026-10-30
+
+- Add theme-colored monochrome application icons, preserving original icon detail
+  through alpha coverage rather than darker RGB colors. Map opacity to 55–100%
+  for active windows and 20–65% for inactive windows, preserving transparent edges.
+- Cycle through monochrome icons, application names, and original full-color
+  icons with right-click; persist the selected mode and include it in diagnostics.
+- Include the shader source, compiled Qt 6 shader, and regeneration instructions.
 
 - Separate application identity policy, reactive data collection, and bar rendering.
 - Resolve `org.omarchy.<command>` through the Omarchy TUI-launcher contract;
