@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 — 2026-10-30
+
+- Increase application icon spacing from 3 to 5 in both monochrome and original
+  icon modes, including vertical layouts; keep text-mode spacing unchanged.
+- Render application names in bold in text mode.
+
 ## 1.2.0 — 2026-10-30
 
 - Add theme-colored monochrome application icons, preserving original icon detail

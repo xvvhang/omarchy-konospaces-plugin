@@ -201,8 +201,8 @@ BarWidget {
           GridLayout {
             visible: workspaceButton.occupied
             columns: root.vertical ? 1 : Math.max(1, workspaceButton.windows.length)
-            columnSpacing: Style.space(root.textMode ? 8 : 3)
-            rowSpacing: Style.space(3)
+            columnSpacing: Style.space(8)
+            rowSpacing: Style.space(root.textMode ? 3 : 5)
             Layout.alignment: Qt.AlignCenter
 
             Repeater {
