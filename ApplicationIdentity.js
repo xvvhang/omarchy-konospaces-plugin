@@ -12,6 +12,17 @@ function exactEntry(id, entries) {
   return entry || unique(entries.filter(function(e) { return e.startupClass && e.startupClass === id }))
 }
 
+function relaxedEntry(ids, entries) {
+  // Run only after all exact/explicit matches. Consider all window IDs together
+  // and refuse conflicting candidates instead of choosing the first entry.
+  return unique(entries.filter(function(entry) {
+    return ids.some(function(id) {
+      return desktopId(entry.id).toLowerCase() === desktopId(id).toLowerCase()
+        || (entry.startupClass && String(entry.startupClass).toLowerCase() === String(id).toLowerCase())
+    })
+  }))
+}
+
 function commandName(entry) {
   var command = entry.command || []
   return command.length ? String(command[0]).split("/").pop() : ""
@@ -68,6 +79,8 @@ function resolve(window, entries, processes, defaultTerminalId) {
     entry = webAppEntry([ids[i]], entries)
     if (entry) return result(entry, "web-app", fallback)
   }
+  entry = relaxedEntry(ids, entries)
+  if (entry) return result(entry, "desktop-entry-relaxed", fallback)
   var processId = processes[String(window.pid)]
   entry = processId ? unique(entries.filter(function(e) { return e.id === processId })) : null
   return result(entry, entry ? "process" : "unresolved", fallback)

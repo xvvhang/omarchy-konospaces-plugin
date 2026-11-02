@@ -37,13 +37,17 @@ Optional settings on the widget entry in `~/.config/omarchy/shell.json`:
 `displayMode` accepts `icons` (monochrome), `text`, or `original` (full color).
 
 Names and icons share desktop-entry matching, with explicit Omarchy/web-app
-adapters and a unique PID/executable fallback. Titles and launcher scripts are
+adapters. After exact/explicit matching, a unique case-insensitive desktop ID or
+StartupWMClass match is tried before the PID/executable fallback. Ambiguous
+case-insensitive matches are ignored. Process matching prefers the full resolved
+executable path, then a unique executable basename to support wrapper launchers.
+Titles and launcher scripts are
 not used to guess application identity. No application commands are executed.
 
 ## Known issues
 
-- Windows without usable application IDs behind wrapper scripts, including the
-  currently tested Feishu window, may display `Window` with a generic icon.
+- Windows without usable application IDs whose executable path or basename does
+  not uniquely match a desktop entry may display `Window` with a generic icon.
 - Ambiguous executable matches are deliberately ignored. Unmatched windows show
   their raw app ID/class, or `Window` if neither is available.
 - Web-app matching depends on URL-derived browser IDs and may not cover every browser.

@@ -1,7 +1,8 @@
 """Read-only fallback: match a PID to a unique desktop-entry executable.
 
-Only paths and symlinks are resolved. Scripts, argv, and terminal titles are
-deliberately not interpreted; multiple entries for one executable stay ambiguous.
+Prefer resolved paths, then unique executable basenames for wrapper launchers.
+Scripts, argv, and terminal titles are deliberately not interpreted;
+multiple entries for one executable stay ambiguous.
 """
 
 import json
@@ -26,10 +27,12 @@ def executable_path(command, working_directory=""):
 
 def resolve_process_apps(entries, pids):
     executables = {}
+    basenames = {}
     for entry in entries:
         path = executable_path(entry["executable"], entry.get("workingDirectory", ""))
         if path:
             executables.setdefault(path, set()).add(entry["id"])
+            basenames.setdefault(os.path.basename(path), set()).add(entry["id"])
 
     matches = {}
     for pid in pids:
@@ -40,6 +43,9 @@ def resolve_process_apps(entries, pids):
         except OSError:
             continue
         ids = executables.get(path, set())
+        # An ambiguous exact path must not be overridden by a weaker match.
+        if not ids:
+            ids = basenames.get(os.path.basename(path), set())
         if len(ids) == 1:
             matches[str(pid)] = next(iter(ids))
     return matches

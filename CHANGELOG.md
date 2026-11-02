@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.2 — 2026-11-02
+
+- Add unique case-insensitive desktop ID/StartupWMClass matching after exact and
+  explicit matches, fixing applications such as Postman with differently cased IDs.
+- Fall back from resolved executable paths to unique executable basenames for
+  wrapper-launched applications without window IDs, including Feishu.
+- Preserve exact-match priority and reject ambiguous fallback candidates; add
+  regression tests for both matching policies.
+
 ## 1.2.1 — 2026-10-30
 
 - Increase application icon spacing from 3 to 5 in both monochrome and original

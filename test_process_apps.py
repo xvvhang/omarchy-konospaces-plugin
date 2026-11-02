@@ -38,6 +38,28 @@ class ProcessAppTests(unittest.TestCase):
     def test_inaccessible_process_is_ignored(self, readlink):
         self.assertEqual(resolver.resolve_process_apps([], [123]), {})
 
+    @patch.object(resolver.os, "readlink", return_value="/opt/bytedance/feishu/feishu")
+    def test_wrapper_with_unique_executable_basename(self, readlink):
+        entries = [{"id": "feishu", "executable": "/usr/bin/feishu"}]
+        self.assertEqual(resolver.resolve_process_apps(entries, [123]), {"123": "feishu"})
+
+    @patch.object(resolver.os, "readlink", return_value="/opt/vendor/app")
+    def test_ambiguous_basename_is_not_guessed(self, readlink):
+        entries = [{"id": "one", "executable": "/usr/bin/app"},
+                   {"id": "two", "executable": "/opt/other/app"}]
+        self.assertEqual(resolver.resolve_process_apps(entries, [123]), {})
+
+    @patch.object(resolver.os, "readlink", return_value="/opt/vendor/app")
+    def test_exact_path_wins_over_basename(self, readlink):
+        entries = [{"id": "exact", "executable": "/opt/vendor/app"},
+                   {"id": "other", "executable": "/usr/bin/app"}]
+        self.assertEqual(resolver.resolve_process_apps(entries, [123]), {"123": "exact"})
+
+    @patch.object(resolver.os, "readlink", return_value="/opt/vendor/app")
+    def test_ambiguous_exact_path_is_not_guessed(self, readlink):
+        entries = [{"id": name, "executable": "/opt/vendor/app"} for name in ["one", "two"]]
+        self.assertEqual(resolver.resolve_process_apps(entries, [123]), {})
+
     @patch.object(resolver.os, "readlink")
     def test_invalid_pids_are_ignored(self, readlink):
         self.assertEqual(resolver.resolve_process_apps([], [-1, 0, True, "123"]), {})
