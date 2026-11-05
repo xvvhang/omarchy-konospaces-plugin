@@ -1,0 +1,19 @@
+{
+  "workspace": "Workspace %1",
+  "scratchpad": "Scratchpad",
+  "console": "Quake console",
+  "layout": "Layout: %1 · Click to cycle",
+  "overlayLayout": "Layout: %1 · Close the overlay to change",
+  "tiling": "Tiling",
+  "scrolling": "Scrolling",
+  "floating": "Floating",
+  "minimized": "Minimized windows",
+  "minimizedCount": { "one": "%1 minimized window", "other": "%1 minimized windows" },
+  "restoreHint": "Select a window to restore it to this display’s current workspace.",
+  "origin": "From workspace %1",
+  "unknownOrigin": "Unknown origin",
+  "empty": "No minimized windows",
+  "restore": "Restore",
+  "restoreTo": "Click to restore to workspace %1",
+  "busy": "Restoring…"
+}

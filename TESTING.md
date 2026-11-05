@@ -1,5 +1,49 @@
 # Validation record
 
+## 1.3.0 — 2026-11-05
+
+- Subsequent visual feedback: workspace foreground depends on monitor-local viewed
+  state, never active-window ownership. An open overlay exclusively takes the
+  highlight; closing it restores the base numbered highlight. No separator or
+  underline rectangles remain. Clipboard Outline / Terminal / Dock Window markers use
+  Nerd Font glyphs with Omarchy's OpticalGlyph renderer. Policy tests cover exactly
+  one highlighted destination for ordinary/console/scratchpad states and icon maps.
+- Manifest validation and `git diff --check` passed on Omarchy 4.5.0-3.
+- Existing JavaScript application identity tests and new pure workspace-policy
+  tests passed: ordinary negative IDs, display-local labels, overlay classification,
+  hidden storage, source tags, and markup-shaped tooltip input.
+- All 20 Python process/action/UI-structure tests passed, including stale restore
+  rejection, exact window addressing, clicked-workspace capture, no-underline/
+  no-popup structure, overlay layout guard, and inotify mode-file creation.
+- Restarted the actual Omarchy Shell to bypass stale QML component caching. Live
+  diagnostics report the local display, base workspace, overlays, layout, and panel.
+- Using one disposable Alacritty window on a dedicated test special workspace,
+  verified overlay opening, persistent base context, selecting the regular
+  workspace to dismiss the overlay, minimized-storage exclusion, recovery-panel
+  creation, and restoring that exact window into the current regular workspace.
+  Closed the test window and restored the prior focus afterward. No existing user
+  window was moved, and no Quake console/default agent was started by the test.
+- No new plugin QML errors in the restarted Shell log; Hyprland configerrors clean.
+- Following UI feedback, removed the underline and recovery popup. Each minimized
+  window now has its own inline WorkspaceChip in the selected icon/name mode.
+  A subsequent disposable-window live test confirmed a real inline Alacritty
+  identity/label, exclusion from workspace groups, and unchanged overlay state.
+  Closed the test window afterward. The earlier popup test describes the initial
+  preview, not the revised UI.
+- Grouped the minimized marker and individual window targets into MinimizedStrip:
+  matches WorkspaceChip's 5-unit marker gap and 8-unit inter-window gap without
+  duplicated button padding. Spacing structure regression passed; after restarting
+  Shell, the disposable inline-window smoke test passed with no matching QML errors.
+  Pointer-click and vertical-bar acceptance checks below remain outstanding.
+- Standalone qmllint/qmlformat reported a parse error at the existing
+  `pragma ComponentBehavior: Bound` header; actual Quickshell loading and live
+  interaction succeeded. Static QML lint is therefore not recorded as passed.
+- Physical multi-monitor/hot-unplug, vertical-bar rendering, real Quake-console
+  seeding, and end-to-end virtual-pointer clicking of inline Restore remain manual
+  acceptance checks. Multi-monitor policy is unit-tested, not hardware-verified.
+- Prepared version 1.3.0 from the locally tested preview; no marketplace submission
+  or separate GitHub release is included in this validation record.
+
 Checked 2026-10-29 for the identity-resolver refactor (supersedes the earlier
 terminal-argument matching attempt):
 

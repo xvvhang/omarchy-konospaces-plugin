@@ -1,0 +1,19 @@
+{
+  "workspace": "工作区 %1",
+  "scratchpad": "暂存区",
+  "console": "下拉控制台",
+  "layout": "布局：%1 · 点击切换",
+  "overlayLayout": "布局：%1 · 收起覆盖层后可切换",
+  "tiling": "平铺",
+  "scrolling": "滚动",
+  "floating": "浮动",
+  "minimized": "已最小化窗口",
+  "minimizedCount": { "other": "%1 个最小化窗口" },
+  "restoreHint": "选择窗口，将其恢复到这块屏幕的当前工作区。",
+  "origin": "来自工作区 %1",
+  "unknownOrigin": "来源未知",
+  "empty": "没有最小化窗口",
+  "restore": "恢复",
+  "restoreTo": "点击恢复到工作区 %1",
+  "busy": "正在恢复…"
+}

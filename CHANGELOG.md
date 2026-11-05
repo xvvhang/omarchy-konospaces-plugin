@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.3.0 — 2026-11-05
+
+- Separate regular workspaces, interactive overlays, and minimized-window storage.
+- Keep base-workspace context visible under Scratchpad/Quake console overlays;
+  hide internal screensaver storage and never expose minimized storage directly.
+- Show per-monitor workspace groups and local 1–10 labels; preserve named workspaces.
+- Add layout display/cycling, event-driven layout invalidation, and inline
+  minimized-window icons/names with monitor-scoped, address-targeted restore.
+  Capture the clicked workspace so delayed commands cannot change the destination.
+- Keep active-state emphasis/color without adding workspace/window underlines.
+- Use the same bar foreground and 50% marker opacity for inactive regular/special
+  workspaces and minimized storage. Gate window focus styling on viewed state,
+  preventing stale focus metadata from brightening hidden overlay windows.
+- Derive workspace emphasis only from this display's viewed workspace/open
+  overlay, independent of active-window ownership. An open overlay takes exclusive
+  highlight precedence over the base numbered workspace. Remove the group separator.
+- Replace S / >_ / arrow markers with native-style, optically sized Nerd Font
+  Clipboard Outline / Terminal / Dock Window icons and align the layout
+  button slot with the stock widget's 20-unit width.
+- Match minimized marker/window spacing to Scratchpad without duplicated button
+  padding, while retaining independent restore targets.
+- Preserve application matching and all three display modes. Escape dynamic
+  tooltip text and render new UI text as plain text; add English/Chinese catalogs.
+- Add policy/action tests for classification, multi-monitor isolation, origin
+  metadata, markup-shaped input, stale actions, and layout file notifications.
+
 ## 1.2.2 — 2026-11-02
 
 - Add unique case-insensitive desktop ID/StartupWMClass matching after exact and
