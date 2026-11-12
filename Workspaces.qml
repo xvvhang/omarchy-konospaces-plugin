@@ -15,6 +15,7 @@ BarWidget {
   readonly property string displayMode: setting("displayMode", "icons")
   readonly property bool textMode: displayMode === "text"
   readonly property bool originalIconMode: displayMode === "original"
+  readonly property bool noIconsMode: displayMode === "none"
   readonly property real windowNameMaxWidth: Style.space(Math.max(40, Number(setting("windowNameMaxWidth", 100)) || 100))
   readonly property string stateHome: Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state"
   readonly property string actionScript: decodeURIComponent(Qt.resolvedUrl("workspace-actions.py").toString().replace(/^file:\/\//, ""))
@@ -40,7 +41,9 @@ BarWidget {
   readonly property var minimizedWindows: Hyprland.toplevels.values.filter(function(window) {
     return window.workspace && Policy.kind(window.workspace.name) === "minimized"
   })
-  property string activeMode: ""
+  property var modeCache: ({})
+  readonly property string activeMode: modeCache[activeWorkspaceId] || ""
+  readonly property string layoutGlyph: activeMode === "floating" ? "󰔶" : activeMode === "scrolling" ? "󰝥" : activeMode === "dwindle" ? "󱓻" : ""
   property int modeGeneration: 0
   property string actionError: ""
   readonly property bool actionBusy: actionProcess.running
@@ -81,7 +84,7 @@ BarWidget {
   function toggleDisplayMode() {
     var entry = {id: moduleName}
     for (var key in settings) if (key !== "id") entry[key] = settings[key]
-    var modes = ["icons", "text", "original"]
+    var modes = ["icons", "text", "original", "none"]
     entry.displayMode = modes[(modes.indexOf(displayMode) + 1) % modes.length]
     settings = entry
     if (bar && bar.shell) bar.shell.updateEntryInline(moduleName, entry)
@@ -100,7 +103,10 @@ BarWidget {
   }
   function restoreWindow(window) { runAction("restore", window.address) }
   function refreshState() { monitorRefresh.restart() }
-  function refreshMode() { modeGeneration++; modeRefresh.restart() }
+  function refreshMode() {
+    modeGeneration++
+    modeRefresh.restart()
+  }
   function refresh() { refreshState(); refreshMode() }
   function diagnostics() {
     var result = applications.diagnostics()
@@ -116,9 +122,13 @@ BarWidget {
     result.minimizedLabels = minimizedStrip.windowLabels()
     result.actionError = actionError
     result.labels = []
+    result.geometry = []
     for (var i = 0; i < workspaceRepeater.count; i++) {
       var item = workspaceRepeater.itemAt(i)
-      if (item) result.labels = result.labels.concat(item.windowLabels())
+      if (item) {
+        result.labels = result.labels.concat(item.windowLabels())
+        result.geometry.push(item.geometry())
+      }
     }
     return result
   }
@@ -175,7 +185,7 @@ BarWidget {
     interval: 40
     onTriggered: {
       if (modeProcess.running) return
-      if (root.activeWorkspaceId <= 0) { root.activeMode = ""; return }
+      if (root.activeWorkspaceId <= 0) return
       modeProcess.workspace = root.activeWorkspaceId
       modeProcess.generation = root.modeGeneration
       modeProcess.command = ["omarchy-hyprland-workspace-layout-current", String(root.activeWorkspaceId)]
@@ -190,7 +200,11 @@ BarWidget {
       onStreamFinished: {
         var mode = text.trim()
         if (modeProcess.workspace === root.activeWorkspaceId && modeProcess.generation === root.modeGeneration
-            && ["dwindle", "scrolling", "floating"].indexOf(mode) !== -1) root.activeMode = mode
+            && ["dwindle", "scrolling", "floating"].indexOf(mode) !== -1) {
+          var next = Object.assign({}, root.modeCache)
+          next[modeProcess.workspace] = mode
+          root.modeCache = next
+        }
       }
     }
     onExited: if (workspace !== root.activeWorkspaceId || generation !== root.modeGeneration) modeRefresh.restart()
@@ -234,17 +248,19 @@ BarWidget {
     id: grid
     anchors.fill: parent
     columns: root.vertical ? 1 : Math.max(1, 1 + root.groups.regular.length + root.groups.overlays.length
-      + (root.minimizedWindows.length ? 1 : 0))
+      + (!root.noIconsMode && root.minimizedWindows.length ? 1 : 0))
     columnSpacing: root.vertical ? 0 : Style.space(1)
     rowSpacing: root.vertical ? Style.space(2) : 0
     WidgetButton {
       id: layoutButton
       bar: root.bar
-      text: root.activeMode === "floating" ? "󰔶" : root.activeMode === "scrolling" ? "󰝥" : "󱓻"
+      text: root.layoutGlyph
+      keepSpace: true
       horizontalMargin: 6
-      fixedHeight: root.barSize
+      verticalPadding: 6
       fixedWidth: root.vertical ? root.barSize : Style.space(20)
-      opacity: root.activeSpecial || root.activeWorkspaceId <= 0 || root.actionBusy ? 0.4 : 0.7
+      fixedHeight: root.barSize
+      opacity: root.activeSpecial || root.activeWorkspaceId <= 0 ? 0.4 : 1
       tooltipText: Policy.safeTooltip((root.activeSpecial ? strings.t("overlayLayout") : strings.t("layout"))
         .arg(root.activeMode === "floating" ? strings.t("floating") : root.activeMode === "scrolling" ? strings.t("scrolling") : strings.t("tiling")))
       onPressed: function(button) {
@@ -271,6 +287,10 @@ BarWidget {
         shown: Policy.isViewed(group, root.activeWorkspaceId, root.activeSpecial)
       }
     }
-    MinimizedStrip { id: minimizedStrip; hostWidget: root; windows: root.minimizedWindows }
+    MinimizedStrip {
+      id: minimizedStrip
+      hostWidget: root
+      windows: root.noIconsMode ? [] : root.minimizedWindows
+    }
   }
 }

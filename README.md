@@ -17,14 +17,15 @@ omarchy plugin disable omarchy.workspaces
 ## Usage
 
 - **Left-click** a workspace to switch; special workspaces toggle.
-- **Right-click** to cycle monochrome icons, application names, and full-color icons.
+- **Right-click** to cycle monochrome icons, application names, full-color icons,
+  and workspace-only mode.
 - **Hover** for window titles and restore details.
 - Only the workspace currently viewed on each display is highlighted; inactive
   entries are dimmed.
 
 ### Omarchy 4.5 features
 
-- Per-display workspace groups with local **1–10** labels and named workspaces.
+- Per-display workspace groups with local **1–9, 0** labels and named workspaces.
 - **Tiling / scrolling / floating** indicator; click to cycle layouts when no
   special workspace is open.
 - **Scratchpad / Console** indicators using Clipboard Outline and Terminal icons.
@@ -41,7 +42,12 @@ Optional fields on the widget entry in `~/.config/omarchy/shell.json`:
 {"id": "konochi.konospaces", "displayMode": "text", "windowNameMaxWidth": 100}
 ```
 
-`displayMode`: `icons` (default, monochrome), `text`, or `original` (full color).
+`displayMode`: `icons` (default, monochrome with the active window in full color),
+`text`, `original` (full color), or `none` (workspace markers only, hiding application
+icons/names and the minimized-window strip).
+
+Inactive workspace markers remain at 50% opacity. In full-color mode, inactive
+window icons use 30% opacity; the active window remains fully opaque.
 
 ## Troubleshooting
 

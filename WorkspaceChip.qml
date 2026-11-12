@@ -20,10 +20,11 @@ WidgetButton {
   hasVisualContent: true
   labelVisible: false
   tooltipText: hostWidget.workspaceTooltip(group)
-  foreground: shown ? Color.accent : (bar ? bar.barForeground : Color.foreground)
+  foreground: bar ? bar.barForeground : Color.foreground
   horizontalMargin: 6
   verticalPadding: 6
-  fixedWidth: hostWidget.vertical ? hostWidget.barSize : Math.max(Style.space(20), content.implicitWidth + scaledHorizontalMargin * 2)
+  fixedWidth: hostWidget.vertical ? hostWidget.barSize : hostWidget.noIconsMode ? Style.space(20)
+    : Math.max(Style.space(20), content.implicitWidth + scaledHorizontalMargin * 2)
   fixedHeight: hostWidget.vertical ? Math.max(hostWidget.barSize, content.implicitHeight + scaledVerticalPadding * 2) : hostWidget.barSize
   onPressed: function(button) {
     if (button === Qt.RightButton) hostWidget.toggleDisplayMode()
@@ -42,6 +43,12 @@ WidgetButton {
     return labels
   }
 
+  function geometry() {
+    return {workspace: group.name, shown: shown, width: width,
+      indicatorWidth: indicator.width, windowsX: windowContent.x,
+      contentWidth: content.implicitWidth, layoutGlyph: workspaceGlyph}
+  }
+
   GridLayout {
     id: content
     anchors.centerIn: parent
@@ -49,46 +56,61 @@ WidgetButton {
     columnSpacing: Style.space(5)
     rowSpacing: Style.space(4)
 
-    Text {
-      visible: chip.text !== "" && chip.workspaceGlyph === ""
-      text: chip.text
-      textFormat: Text.PlainText
-      color: chip.foreground
-      opacity: chip.indicatorOpacity
-      font.family: chip.fontFamily
-      font.pixelSize: chip.fontSize
-      font.bold: chip.shown
-      renderType: Text.NativeRendering
-      elide: Text.ElideRight
-      Layout.maximumWidth: Style.space(chip.hostWidget.vertical ? 32 : 90)
-      Layout.alignment: Qt.AlignCenter
-    }
-
     Item {
-      visible: chip.workspaceGlyph !== ""
-      implicitWidth: Style.bar.iconCanvas
-      implicitHeight: Style.bar.iconCanvas
+      id: indicator
+      visible: chip.text !== "" || chip.workspaceGlyph !== ""
+      implicitWidth: chip.workspaceGlyph !== "" ? Style.bar.iconCanvas
+        : Math.min(indicatorText.implicitWidth, Style.space(chip.hostWidget.vertical ? 32 : 90))
+      implicitHeight: Math.max(indicatorText.implicitHeight, Style.bar.iconCanvas)
+      Layout.minimumWidth: implicitWidth
+      Layout.preferredWidth: implicitWidth
+      Layout.maximumWidth: implicitWidth
       Layout.alignment: Qt.AlignCenter
-      opacity: chip.indicatorOpacity
-      OpticalGlyph {
+
+      Text {
+        id: indicatorText
         anchors.fill: parent
-        text: chip.workspaceGlyph
-        fontFamily: chip.fontFamily
-        fontSize: chip.fontSize
-        paintedSize: Style.bar.iconSize
+        visible: chip.text !== "" && chip.workspaceGlyph === ""
+        text: chip.text
+        textFormat: Text.PlainText
         color: chip.foreground
+        opacity: chip.indicatorOpacity
+        font.family: chip.fontFamily
+        font.pixelSize: chip.fontSize
+        font.bold: chip.shown
+        renderType: Text.NativeRendering
+        elide: Text.ElideRight
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+      }
+
+      Item {
+        visible: chip.workspaceGlyph !== ""
+        anchors.fill: parent
+        opacity: chip.indicatorOpacity
+        OpticalGlyph {
+          width: Style.bar.iconCanvas
+          height: Style.bar.iconCanvas
+          anchors.centerIn: parent
+          text: chip.workspaceGlyph
+          fontFamily: chip.fontFamily
+          fontSize: chip.fontSize
+          paintedSize: Style.bar.iconSize
+          color: chip.foreground
+        }
       }
     }
 
     GridLayout {
-      visible: chip.windows.length > 0
+      id: windowContent
+      visible: !chip.hostWidget.noIconsMode && chip.windows.length > 0
       columns: chip.hostWidget.vertical ? 1 : Math.max(1, chip.windows.length)
       columnSpacing: Style.space(8)
       rowSpacing: Style.space(chip.hostWidget.textMode ? 3 : 5)
       Layout.alignment: Qt.AlignCenter
       Repeater {
         id: windowRepeater
-        model: chip.windows
+        model: chip.hostWidget.noIconsMode ? [] : chip.windows
         Item {
           id: windowItem
           required property var modelData
@@ -102,7 +124,7 @@ WidgetButton {
           Layout.preferredWidth: implicitWidth
           Layout.preferredHeight: implicitHeight
           Layout.alignment: Qt.AlignCenter
-          opacity: (chip.hostWidget.textMode || chip.hostWidget.originalIconMode) && !focused ? 0.5 : 1
+          opacity: !focused ? (chip.hostWidget.originalIconMode ? 0.3 : chip.hostWidget.textMode ? 0.5 : 1) : 1
           Text {
             id: windowLabel
             anchors.fill: parent
@@ -121,7 +143,7 @@ WidgetButton {
           Image {
             id: applicationIconImage
             anchors.fill: parent
-            visible: chip.hostWidget.originalIconMode
+            visible: chip.hostWidget.originalIconMode || (!chip.hostWidget.textMode && windowItem.focused)
             source: chip.hostWidget.textMode ? "" : chip.hostWidget.applicationIcon(windowItem.application)
             sourceSize.width: chip.hostWidget.iconSize
             sourceSize.height: chip.hostWidget.iconSize
@@ -129,7 +151,7 @@ WidgetButton {
           }
           ShaderEffect {
             anchors.fill: applicationIconImage
-            visible: !chip.hostWidget.textMode && !chip.hostWidget.originalIconMode
+            visible: !chip.hostWidget.textMode && !chip.hostWidget.originalIconMode && !windowItem.focused
             property var source: applicationIconImage
             property color foreground: chip.foreground
             property real minimumOpacity: windowItem.focused ? 0.55 : 0.2

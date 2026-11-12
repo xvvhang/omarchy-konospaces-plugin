@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.4.0 — 2026-11-12
+
+- Add a workspace-only display mode with native-style fixed-width numbers; cycle
+  monochrome icons, application names, full-color icons, and no icons with right-click.
+- Use the bar foreground instead of accent colors. Keep inactive workspace markers
+  at 50% opacity and inactive full-color application icons at 30% opacity.
+- Show the active window's original full-color icon in monochrome mode, while
+  retaining monochrome opacity shading for other windows.
+- Display the monitor-local tenth workspace as `0`, matching Omarchy.
+- Cache layout results per workspace to prevent the previous workspace's layout
+  flashing on a switch; retain the current icon during layout refreshes.
+- Keep the layout control first, preserve natural number widths in application
+  modes, and expose marker/content geometry in diagnostics.
+- Add regression coverage for display modes, opacity, labels, and layout rendering.
+
 ## 1.3.0 — 2026-11-05
 
 - Separate regular workspaces, interactive overlays, and minimized-window storage.

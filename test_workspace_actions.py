@@ -66,12 +66,62 @@ class WorkspaceActionTests(unittest.TestCase):
         self.assertIn('group.minimized ? ""', chip)
         self.assertIn('hasVisualContent: true', chip)
         self.assertNotIn('focusedWithin', chip)
-        self.assertIn('foreground: shown ?', chip)
+        self.assertIn('foreground: bar ? bar.barForeground : Color.foreground', chip)
+        self.assertNotIn('Color.accent', chip)
         self.assertIn('OpticalGlyph {', chip)
         self.assertNotIn('Rectangle {', widget)
         self.assertEqual(chip.count('opacity: chip.indicatorOpacity'), 2)
         self.assertIn('indicatorOpacity: shown ? 1 : 0.5', chip)
         self.assertIn('Policy.windowActive(chip.shown, modelData.activated)', chip)
+
+    def test_layout_button_precedes_workspace_numbers(self):
+        chip = (ROOT / 'WorkspaceChip.qml').read_text()
+        widget = (ROOT / 'Workspaces.qml').read_text()
+        self.assertNotIn('showsLayout', chip)
+        self.assertIn('text: root.layoutGlyph', widget)
+        self.assertIn('root.runAction("layout", "")', widget)
+        self.assertIn('readonly property string layoutGlyph:', widget)
+        self.assertLess(widget.index('id: layoutButton'), widget.index('id: workspaceRepeater'))
+
+    def test_layout_is_bound_to_destination_workspace(self):
+        widget = (ROOT / 'Workspaces.qml').read_text()
+        chip = (ROOT / 'WorkspaceChip.qml').read_text()
+        self.assertIn('activeMode: modeCache[activeWorkspaceId] || ""', widget)
+        self.assertIn('next[modeProcess.workspace] = mode', widget)
+        self.assertNotIn('modeCache = ({})', widget)
+        self.assertIn('activeMode === "dwindle" ? "󱓻" : ""', widget)
+        self.assertNotIn('hostWidget.layoutGlyph', chip)
+
+    def test_no_icons_mode_hides_application_content(self):
+        widget = (ROOT / 'Workspaces.qml').read_text()
+        chip = (ROOT / 'WorkspaceChip.qml').read_text()
+        self.assertIn('noIconsMode: displayMode === "none"', widget)
+        self.assertIn('["icons", "text", "original", "none"]', widget)
+        self.assertIn('visible: !chip.hostWidget.noIconsMode && chip.windows.length > 0', chip)
+        self.assertIn('model: chip.hostWidget.noIconsMode ? [] : chip.windows', chip)
+        self.assertIn('windows: root.noIconsMode ? [] : root.minimizedWindows', widget)
+
+    def test_active_window_is_colored_in_monochrome_mode(self):
+        chip = (ROOT / 'WorkspaceChip.qml').read_text()
+        self.assertIn('visible: chip.hostWidget.originalIconMode || (!chip.hostWidget.textMode && windowItem.focused)', chip)
+        self.assertIn('visible: !chip.hostWidget.textMode && !chip.hostWidget.originalIconMode && !windowItem.focused', chip)
+
+    def test_icon_modes_use_distinct_opacity_rules(self):
+        chip = (ROOT / 'WorkspaceChip.qml').read_text()
+        self.assertIn('minimumOpacity: windowItem.focused ? 0.55 : 0.2', chip)
+        self.assertIn('maximumOpacity: windowItem.focused ? 1.0 : 0.65', chip)
+        self.assertIn('property color foreground: chip.foreground', chip)
+        self.assertIn('opacity: !focused ? (chip.hostWidget.originalIconMode ? 0.3 : chip.hostWidget.textMode ? 0.5 : 1) : 1', chip)
+        self.assertNotIn('brightForeground', chip)
+
+    def test_workspace_numbers_use_natural_width(self):
+        chip = (ROOT / 'WorkspaceChip.qml').read_text()
+        for constraint in ('minimumWidth', 'preferredWidth', 'maximumWidth'):
+            self.assertIn(f'Layout.{constraint}: implicitWidth', chip)
+        self.assertIn('id: indicatorText\n        anchors.fill: parent', chip)
+        self.assertIn('Math.min(indicatorText.implicitWidth, Style.space(chip.hostWidget.vertical ? 32 : 90))', chip)
+        self.assertIn('horizontalAlignment: Text.AlignHCenter', chip)
+        self.assertIn('width: Style.bar.iconCanvas', chip)
 
     def test_minimized_spacing_matches_overlay_spacing(self):
         chip = (ROOT / 'WorkspaceChip.qml').read_text()

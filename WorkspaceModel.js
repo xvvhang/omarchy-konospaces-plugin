@@ -33,7 +33,7 @@ function label(workspace, localBlock) {
   if (workspace.name === "special:qconsole") return ">_"
   if (kind(workspace.name) === "overlay") return String(workspace.name).slice(8)
   if (workspace.id > 0 && /^\d+$/.test(String(workspace.name)) && block(workspace.id) === localBlock)
-    return String(slot(workspace.id))
+    return slot(workspace.id) === 10 ? "0" : String(slot(workspace.id))
   return String(workspace.name || workspace.id)
 }
 
