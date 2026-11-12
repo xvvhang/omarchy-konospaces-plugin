@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "konochi.konospaces",
   "name": "Konospaces",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "author": "alec",
   "license": "MIT",
   "description": "Monitor-local workspaces, layout controls, overlay indicators, and minimized-window recovery",

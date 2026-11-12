@@ -53,7 +53,7 @@ WidgetButton {
     id: content
     anchors.centerIn: parent
     columns: chip.hostWidget.vertical || chip.text === "" ? 1 : 2
-    columnSpacing: Style.space(5)
+    columnSpacing: Style.space(7)
     rowSpacing: Style.space(4)
 
     Item {

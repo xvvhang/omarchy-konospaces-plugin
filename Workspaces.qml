@@ -42,7 +42,8 @@ BarWidget {
     return window.workspace && Policy.kind(window.workspace.name) === "minimized"
   })
   property var modeCache: ({})
-  readonly property string activeMode: modeCache[activeWorkspaceId] || ""
+  property string lastMode: "dwindle"
+  readonly property string activeMode: modeCache[activeWorkspaceId] || lastMode
   readonly property string layoutGlyph: activeMode === "floating" ? "󰔶" : activeMode === "scrolling" ? "󰝥" : activeMode === "dwindle" ? "󱓻" : ""
   property int modeGeneration: 0
   property string actionError: ""
@@ -204,6 +205,7 @@ BarWidget {
           var next = Object.assign({}, root.modeCache)
           next[modeProcess.workspace] = mode
           root.modeCache = next
+          root.lastMode = mode
         }
       }
     }
@@ -240,7 +242,10 @@ BarWidget {
   }
   Component.onCompleted: refresh()
   onMonitorNameChanged: Qt.callLater(root.refresh)
-  onActiveWorkspaceIdChanged: refreshMode()
+  onActiveWorkspaceIdChanged: {
+    if (modeCache[activeWorkspaceId]) lastMode = modeCache[activeWorkspaceId]
+    refreshMode()
+  }
 
   implicitWidth: grid.implicitWidth + (vertical ? 0 : Style.spaceReal(1.5))
   implicitHeight: grid.implicitHeight

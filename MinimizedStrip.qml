@@ -21,13 +21,13 @@ Item {
     return labels
   }
 
-  // Match WorkspaceChip: one outer padding, a 5-unit marker/content gap,
+  // Match WorkspaceChip: one outer padding, a 7-unit marker/content gap,
   // and 8 units between windows. Individual targets add no horizontal padding.
   GridLayout {
     id: content
     anchors.centerIn: parent
     columns: strip.hostWidget.vertical ? 1 : 2
-    columnSpacing: Style.space(5)
+    columnSpacing: Style.space(7)
     rowSpacing: Style.space(4)
     Item {
       implicitWidth: Style.bar.iconCanvas

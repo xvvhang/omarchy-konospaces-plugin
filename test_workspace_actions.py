@@ -86,7 +86,9 @@ class WorkspaceActionTests(unittest.TestCase):
     def test_layout_is_bound_to_destination_workspace(self):
         widget = (ROOT / 'Workspaces.qml').read_text()
         chip = (ROOT / 'WorkspaceChip.qml').read_text()
-        self.assertIn('activeMode: modeCache[activeWorkspaceId] || ""', widget)
+        self.assertIn('activeMode: modeCache[activeWorkspaceId] || lastMode', widget)
+        self.assertIn('property string lastMode: "dwindle"', widget)
+        self.assertIn('root.lastMode = mode', widget)
         self.assertIn('next[modeProcess.workspace] = mode', widget)
         self.assertNotIn('modeCache = ({})', widget)
         self.assertIn('activeMode === "dwindle" ? "󱓻" : ""', widget)
@@ -126,7 +128,7 @@ class WorkspaceActionTests(unittest.TestCase):
     def test_minimized_spacing_matches_overlay_spacing(self):
         chip = (ROOT / 'WorkspaceChip.qml').read_text()
         strip = (ROOT / 'MinimizedStrip.qml').read_text()
-        for spacing in ('columnSpacing: Style.space(5)', 'columnSpacing: Style.space(8)'):
+        for spacing in ('columnSpacing: Style.space(7)', 'columnSpacing: Style.space(8)'):
             self.assertIn(spacing, chip)
             self.assertIn(spacing, strip)
         self.assertIn('horizontalMargin: strip.hostWidget.vertical ? 6 : 0', strip)

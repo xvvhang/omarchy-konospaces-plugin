@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1 — 2026-11-12
+
+- Increase workspace marker/application spacing from 5 to 7 units, including
+  the minimized-window strip, without changing spacing between applications.
+- Keep a layout glyph visible while querying an uncached workspace's layout;
+  cached destinations switch immediately without an intermediate blank frame.
+
 ## 1.4.0 — 2026-11-12
 
 - Add a workspace-only display mode with native-style fixed-width numbers; cycle
