@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.4.2 — 2026-11-12
+
+- Encode workspace names as Lua-correct UTF-8 string literals, including quotes,
+  backslashes and control bytes; verify round-trips with a real Lua 5.5 parser.
+- Supervise finite monitor/layout/application queries and actions with complete
+  job deadlines, streaming stdout/stderr limits, cancellation and process-group
+  cleanup, while leaving the persistent layout watcher long-running.
+- Bound nested native action calls without detaching them from the supervised
+  session. Preserve native layout helpers and monitor/address revalidation.
+- Expose monitor/layout query errors and running state in diagnostics, cap
+  application lookup request size, and report finite-job failures explicitly.
+- Test deadline and output-limit failures, cancellation, descendant cleanup and
+  recovery from a FIFO-blocked native layout reader in isolated temporary state.
+
 ## 1.4.1 — 2026-11-12
 
 - Increase workspace marker/application spacing from 5 to 7 units, including

@@ -8,10 +8,11 @@ import re
 import struct
 import subprocess
 import sys
+from bounded_process import run as bounded_run
 
 
 def ctl(*arguments):
-    result = subprocess.run(["hyprctl", *arguments], text=True, capture_output=True, check=True, timeout=5)
+    result = bounded_run(["hyprctl", *arguments], timeout=3, own_group=False)
     output = result.stdout.strip()
     if output.startswith(("error", "Err", "Couldn't", "Invalid")):
         raise RuntimeError(output)
@@ -25,7 +26,11 @@ def dispatch(expression):
 
 
 def quote(value):
-    return json.dumps(str(value), ensure_ascii=True)
+    # Lua accepts UTF-8 literally, but not JSON's \uXXXX escapes. Fixed-width
+    # decimal byte escapes also preserve controls followed by ASCII digits.
+    return '"' + ''.join('\\' + char if char in ('"', '\\') else
+                         '\\%03d' % ord(char) if ord(char) < 32 or ord(char) == 127
+                         else char for char in str(value)) + '"'
 
 
 def address(value):
@@ -123,7 +128,7 @@ def perform(action, monitor_name, target, clicked_workspace=""):
         dispatch("hl.dsp.focus({ " + selector + " })")
         dispatch('hl.dsp.window.alter_zorder({ mode = "top", ' + selector + " })")
     elif action == "layout":
-        subprocess.run(["omarchy-hyprland-workspace-layout-toggle"], check=True, timeout=10)
+        bounded_run(["omarchy-hyprland-workspace-layout-toggle"], timeout=10, own_group=False)
 
 
 def watch_modes():

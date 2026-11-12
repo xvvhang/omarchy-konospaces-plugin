@@ -1,5 +1,34 @@
 # Validation record
 
+## 1.4.2 — 2026-11-12
+
+- Kept the native Omarchy layout reader/toggle helpers and Hyprland Lua dispatcher
+  interfaces. Workspace names now use Lua string literals with literal UTF-8,
+  escaped quotes/backslashes, and fixed-width decimal control-byte escapes.
+- Real Lua 5.5.1 parser round-trips passed for Chinese workspace/overlay names,
+  emoji, quotes, backslashes, all ASCII control bytes, NUL followed by digits,
+  literal JSON-style escapes, and code-shaped strings. No compositor dispatch
+  or focus change was used for this parser test.
+- All five finite QML jobs use a shared supervisor: a 4-second whole-job deadline
+  for monitor/layout/terminal/process queries and 15 seconds for actions. Stdout
+  is capped at 1 MiB and stderr at 16 KiB while produced, before QML collection.
+  Nonzero jobs discard partial stdout. A QML watchdog sends cancellation after
+  an additional 2 seconds; cancellation kills the native job process group.
+- Action helper child calls remain in the outer job's session, with bounded
+  output and shorter individual deadlines. Final cleanup kills remaining native
+  helper descendants even when their immediate parent exits successfully.
+- Real native layout-reader testing with an isolated state directory, a FIFO
+  mode path and a fixture compositor transport timed out and then recovered after
+  replacing the FIFO with a regular mode file. User state files were not changed.
+- Deadline, stdout/stderr flood, cancellation, descendant-cleanup and subsequent
+  successful-job tests passed. Persistent `watch-modes` remains outside finite-job
+  supervision. Original monitor/address revalidation and tooltip escaping remain.
+- 34 Python tests and both JavaScript test suites passed; `git diff --check` passed.
+  Restarted the actual Shell and confirmed terminal/process resolution and layout
+  reading completed successfully through the new QML component.
+- Physical multi-monitor/vertical-bar acceptance and marketplace approval remain
+  outside this local validation record.
+
 ## 1.3.0 — 2026-11-05
 
 - Subsequent visual feedback: workspace foreground depends on monitor-local viewed

@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import select
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -15,6 +16,19 @@ spec.loader.exec_module(actions)
 
 
 class WorkspaceActionTests(unittest.TestCase):
+    def test_workspace_names_round_trip_through_real_lua_parser(self):
+        lua = shutil.which("lua5.5") or shutil.which("lua")
+        if not lua:
+            self.skipTest("Lua parser is not installed")
+        values = ['研发', 'special:研发', 'emoji-🦉', '"\\',
+                  ''.join(chr(n) for n in range(32)) + chr(127),
+                  '\x00123\n456', '\\u7814', '\"); error("not code") --']
+        for value in values:
+            with self.subTest(value=value):
+                result = subprocess.run([lua, '-'], input=('io.write(' + actions.quote(value) + ')').encode(),
+                                        capture_output=True, check=True, timeout=2)
+                self.assertEqual(result.stdout, value.encode())
+
     def test_restore_only_a_currently_minimized_exact_address(self):
         clients = [{"address": "0xabc", "workspace": {"name": "special:minimized"}}]
         monitor = {"activeWorkspace": {"name": "design", "id": -1300}}

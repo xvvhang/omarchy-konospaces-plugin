@@ -46,6 +46,8 @@ BarWidget {
   readonly property string activeMode: modeCache[activeWorkspaceId] || lastMode
   readonly property string layoutGlyph: activeMode === "floating" ? "󰔶" : activeMode === "scrolling" ? "󰝥" : activeMode === "dwindle" ? "󱓻" : ""
   property int modeGeneration: 0
+  property string monitorError: ""
+  property string layoutError: ""
   property string actionError: ""
   readonly property bool actionBusy: actionProcess.running
 
@@ -94,7 +96,7 @@ BarWidget {
     if (actionBusy || !monitorName) return
     actionError = ""
     actionProcess.requestAction = action
-    actionProcess.command = ["python3", actionScript, action, monitorName, String(target || ""),
+    actionProcess.jobCommand = ["python3", actionScript, action, monitorName, String(target || ""),
       action === "restore" ? activeWorkspaceName : ""]
     actionProcess.running = true
   }
@@ -116,6 +118,10 @@ BarWidget {
     result.activeWorkspace = activeWorkspaceId
     result.activeSpecial = activeSpecial
     result.layout = activeMode
+    result.monitorError = monitorError
+    result.layoutError = layoutError
+    result.monitorQueryRunning = monitorQuery.running
+    result.layoutQueryRunning = modeProcess.running
     result.regular = groups.regular.map(function(ws) { return {id: ws.id, name: ws.name, label: root.workspaceLabel(ws), viewed: Policy.isViewed(ws, root.activeWorkspaceId, root.activeSpecial)} })
     result.overlays = groups.overlays.map(function(ws) { return {id: ws.id, name: ws.name, label: root.workspaceLabel(ws), icon: root.workspaceIcon(ws), viewed: Policy.isViewed(ws, root.activeWorkspaceId, root.activeSpecial)} })
     result.minimized = minimizedWindows.map(function(w) { return {address: w.address, origin: Policy.origin((w.lastIpcObject || {}).tags || [])} })
@@ -166,20 +172,29 @@ BarWidget {
     interval: 30
     onTriggered: {
       if (monitorQuery.running) monitorQuery.again = true
-      else monitorQuery.running = true
+      else { root.monitorError = ""; monitorQuery.running = true }
     }
   }
-  Process {
+  FiniteProcess {
     id: monitorQuery
     property bool again: false
-    command: ["hyprctl", "monitors", "-j"]
+    jobCommand: ["hyprctl", "monitors", "-j"]
     stdout: StdioCollector {
       onStreamFinished: {
         try { root.monitors = JSON.parse(text) }
         catch (error) { console.warn("Konospaces: monitor query failed", error) }
       }
     }
-    onExited: if (again) { again = false; monitorRefresh.restart() }
+    stderr: StdioCollector {
+      onStreamFinished: if (text.trim()) root.monitorError = text.trim()
+    }
+    onExited: function(code) {
+      if (code !== 0) {
+        if (!root.monitorError) root.monitorError = "Monitor query exited with code " + code
+        console.warn("Konospaces:", root.monitorError)
+      }
+      if (again) { again = false; monitorRefresh.restart() }
+    }
   }
   Timer {
     id: modeRefresh
@@ -187,13 +202,14 @@ BarWidget {
     onTriggered: {
       if (modeProcess.running) return
       if (root.activeWorkspaceId <= 0) return
+      root.layoutError = ""
       modeProcess.workspace = root.activeWorkspaceId
       modeProcess.generation = root.modeGeneration
-      modeProcess.command = ["omarchy-hyprland-workspace-layout-current", String(root.activeWorkspaceId)]
+      modeProcess.jobCommand = ["omarchy-hyprland-workspace-layout-current", String(root.activeWorkspaceId)]
       modeProcess.running = true
     }
   }
-  Process {
+  FiniteProcess {
     id: modeProcess
     property int workspace: 0
     property int generation: 0
@@ -209,14 +225,27 @@ BarWidget {
         }
       }
     }
-    onExited: if (workspace !== root.activeWorkspaceId || generation !== root.modeGeneration) modeRefresh.restart()
+    stderr: StdioCollector {
+      onStreamFinished: if (text.trim()) root.layoutError = text.trim()
+    }
+    onExited: function(code) {
+      if (code !== 0) {
+        if (!root.layoutError) root.layoutError = "Layout query exited with code " + code
+        console.warn("Konospaces:", root.layoutError)
+      }
+      if (workspace !== root.activeWorkspaceId || generation !== root.modeGeneration) modeRefresh.restart()
+    }
   }
-  Process {
+  FiniteProcess {
     id: actionProcess
+    timeoutSeconds: 15
     property string requestAction: ""
     stderr: StdioCollector { onStreamFinished: root.actionError = text.trim() }
     onExited: function(code) {
-      if (code !== 0 && root.actionError) console.warn("Konospaces action:", root.actionError)
+      if (code !== 0) {
+        if (!root.actionError) root.actionError = "Action exited with code " + code
+        console.warn("Konospaces action:", root.actionError)
+      }
       Hyprland.refreshMonitors()
       Hyprland.refreshWorkspaces()
       Hyprland.refreshToplevels()

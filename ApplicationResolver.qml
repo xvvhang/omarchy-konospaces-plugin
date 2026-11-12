@@ -62,14 +62,19 @@ Item {
     queryPending = false
     processError = ""
     processQuery.request = processRequest
-    processQuery.command = ["python3", Qt.resolvedUrl("process-apps.py").toString().replace(/^file:\/\//, ""), processQuery.request]
+    if (processQuery.request.length > 24000) {
+      processApplications = ({})
+      processError = "Process lookup request exceeds size limit"
+      return
+    }
+    processQuery.jobCommand = ["python3", decodeURIComponent(Qt.resolvedUrl("process-apps.py").toString().replace(/^file:\/\//, "")), processQuery.request]
     processQuery.running = true
   }
   Component.onCompleted: Qt.callLater(queryProcesses)
   onProcessRequestChanged: Qt.callLater(queryProcesses)
 
-  Process {
-    command: ["xdg-terminal-exec", "--print-id"]
+  FiniteProcess {
+    jobCommand: ["xdg-terminal-exec", "--print-id"]
     running: true
     stdout: StdioCollector {
       onStreamFinished: root.defaultTerminalId = text.trim().split(":")[0]
@@ -89,7 +94,7 @@ Item {
     }
   }
 
-  Process {
+  FiniteProcess {
     id: processQuery
     property string request: ""
     stdout: StdioCollector {
