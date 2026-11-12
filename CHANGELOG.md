@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.3 — 2026-11-12
+
+- Increase inactive full-color window icon opacity from 30% to 40%; active
+  windows remain fully opaque and other display modes are unchanged.
+
 ## 1.4.2 — 2026-11-12
 
 - Encode workspace names as Lua-correct UTF-8 string literals, including quotes,

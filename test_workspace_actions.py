@@ -127,7 +127,7 @@ class WorkspaceActionTests(unittest.TestCase):
         self.assertIn('minimumOpacity: windowItem.focused ? 0.55 : 0.2', chip)
         self.assertIn('maximumOpacity: windowItem.focused ? 1.0 : 0.65', chip)
         self.assertIn('property color foreground: chip.foreground', chip)
-        self.assertIn('opacity: !focused ? (chip.hostWidget.originalIconMode ? 0.3 : chip.hostWidget.textMode ? 0.5 : 1) : 1', chip)
+        self.assertIn('opacity: !focused ? (chip.hostWidget.originalIconMode ? 0.4 : chip.hostWidget.textMode ? 0.5 : 1) : 1', chip)
         self.assertNotIn('brightForeground', chip)
 
     def test_workspace_numbers_use_natural_width(self):

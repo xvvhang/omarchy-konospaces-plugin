@@ -124,7 +124,7 @@ WidgetButton {
           Layout.preferredWidth: implicitWidth
           Layout.preferredHeight: implicitHeight
           Layout.alignment: Qt.AlignCenter
-          opacity: !focused ? (chip.hostWidget.originalIconMode ? 0.3 : chip.hostWidget.textMode ? 0.5 : 1) : 1
+          opacity: !focused ? (chip.hostWidget.originalIconMode ? 0.4 : chip.hostWidget.textMode ? 0.5 : 1) : 1
           Text {
             id: windowLabel
             anchors.fill: parent

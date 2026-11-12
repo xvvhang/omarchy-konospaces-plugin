@@ -47,7 +47,7 @@ Optional fields on the widget entry in `~/.config/omarchy/shell.json`:
 icons/names and the minimized-window strip).
 
 Inactive workspace markers remain at 50% opacity. In full-color mode, inactive
-window icons use 30% opacity; the active window remains fully opaque.
+window icons use 40% opacity; the active window remains fully opaque.
 
 ## Troubleshooting
 
