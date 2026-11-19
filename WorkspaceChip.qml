@@ -142,11 +142,15 @@ WidgetButton {
           }
           Image {
             id: applicationIconImage
-            anchors.fill: parent
+            anchors.centerIn: parent
+            // Compensate for Zed's padded artwork without resizing other apps.
+            readonly property real paddingCompensation: windowItem.application.entryId.replace(/\.desktop$/, "") === "dev.zed.Zed" ? 1.3 : 1
+            width: parent.width * paddingCompensation
+            height: parent.height * paddingCompensation
             visible: chip.hostWidget.originalIconMode || (!chip.hostWidget.textMode && windowItem.focused)
             source: chip.hostWidget.textMode ? "" : chip.hostWidget.applicationIcon(windowItem.application)
-            sourceSize.width: chip.hostWidget.iconSize
-            sourceSize.height: chip.hostWidget.iconSize
+            sourceSize.width: chip.hostWidget.iconSize * paddingCompensation
+            sourceSize.height: chip.hostWidget.iconSize * paddingCompensation
             fillMode: Image.PreserveAspectFit
           }
           ShaderEffect {
